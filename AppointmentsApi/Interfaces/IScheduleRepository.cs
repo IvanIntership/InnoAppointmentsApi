@@ -9,4 +9,5 @@ public interface IScheduleRepository
     Task AddAsync(Schedule schedule);
     Task UpdateAsync(Schedule schedule);
     Task DeleteAsync(Guid id);
+    Task<bool> ExistsAsync(Guid doctorId, int year, int month);
 }

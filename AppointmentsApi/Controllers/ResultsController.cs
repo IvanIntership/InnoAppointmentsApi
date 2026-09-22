@@ -1,14 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
 using InnoAppointmentsApi.Dtos;
 using InnoAppointmentsApi.Features.Results;
+using InnoAppointmentsApi.Constants;
 
 namespace InnoAppointmentsApi.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Consumes("application/json")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
 public sealed class ResultsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -26,6 +29,8 @@ public sealed class ResultsController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status201Created, "Result was created successfully", typeof(Guid))]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request body or parameters")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> CreateResult([FromBody] CreateResultCommand command, CancellationToken ct = default)
     {
@@ -40,6 +45,8 @@ public sealed class ResultsController : ControllerBase
         OperationId = "DeleteResult"
     )]
     [SwaggerResponse(StatusCodes.Status204NoContent, "Result was successfully deleted")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> DeleteResult([FromRoute] Guid id, CancellationToken ct = default)
     {
@@ -55,6 +62,8 @@ public sealed class ResultsController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status204NoContent, "Result was successfully edited")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request body or parameters")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> UpdateResult([FromBody] UpdateResultCommand command, CancellationToken ct = default)
     {
@@ -63,6 +72,7 @@ public sealed class ResultsController : ControllerBase
     }
     
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireAllRoles)]
     [SwaggerOperation(
         Summary = "Gets a result by ID",
         Description = "Retrieves detailed information for a specific result using its unique identifier.",
@@ -70,6 +80,7 @@ public sealed class ResultsController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Result retrieved successfully", typeof(ResultDto))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Result with specified ID was not found")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> GetResult([FromRoute] Guid id, CancellationToken ct = default)
     {
@@ -78,6 +89,7 @@ public sealed class ResultsController : ControllerBase
     }
     
     [HttpGet("appointment/{appointmentId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireAllRoles)]
     [SwaggerOperation(
         Summary = "Gets a result by appointment ID",
         Description = "Retrieves result details associated with a specific appointment.",
@@ -85,6 +97,7 @@ public sealed class ResultsController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Result retrieved successfully", typeof(ResultDto))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Result with specified appointment ID was not found")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> GetByAppointmentId([FromRoute] Guid appointmentId, CancellationToken ct = default)
     {

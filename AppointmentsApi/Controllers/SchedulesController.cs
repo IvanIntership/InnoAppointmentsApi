@@ -1,14 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MediatR;
 using Swashbuckle.AspNetCore.Annotations;
 using InnoAppointmentsApi.Dtos;
 using InnoAppointmentsApi.Features.Schedules;
+using InnoAppointmentsApi.Constants;
 
 namespace InnoAppointmentsApi.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Consumes("application/json")]
+[Authorize(Policy = AuthPolicies.RequireStaff)]
 public sealed class SchedulesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -26,6 +29,8 @@ public sealed class SchedulesController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status201Created, "Schedule was created successfully", typeof(Guid))]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request body or parameters")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> CreateSchedule([FromBody] CreateScheduleCommand command, CancellationToken ct = default)
     {
@@ -40,6 +45,8 @@ public sealed class SchedulesController : ControllerBase
         OperationId = "DeleteSchedule"
     )]
     [SwaggerResponse(StatusCodes.Status204NoContent, "Schedule was successfully deleted")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> DeleteSchedule([FromRoute] Guid id, CancellationToken ct = default)
     {
@@ -55,6 +62,8 @@ public sealed class SchedulesController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status204NoContent, "Schedule was successfully edited")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request body or parameters")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> UpdateSchedule([FromBody] UpdateScheduleCommand command, CancellationToken ct = default)
     {
@@ -63,6 +72,7 @@ public sealed class SchedulesController : ControllerBase
     }
     
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireAllRoles)]
     [SwaggerOperation(
         Summary = "Gets a schedule by ID",
         Description = "Retrieves detailed information for a specific schedule using its unique identifier.",
@@ -70,6 +80,7 @@ public sealed class SchedulesController : ControllerBase
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Schedule retrieved successfully", typeof(ScheduleDto))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Schedule with specified ID was not found")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> GetSchedule([FromRoute] Guid id, CancellationToken ct = default)
     {
@@ -78,12 +89,14 @@ public sealed class SchedulesController : ControllerBase
     }
     
     [HttpGet("doctor/{doctorId:guid}")]
+    [Authorize(Policy = AuthPolicies.RequireAllRoles)]
     [SwaggerOperation(
         Summary = "Gets schedules by doctor ID",
         Description = "Retrieves a list of schedules associated with a specific doctor.",
         OperationId = "GetSchedulesByDoctorId"
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Schedules retrieved successfully", typeof(IEnumerable<ScheduleDto>))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal service error")]
     public async Task<IActionResult> GetByDoctorId([FromRoute] Guid doctorId, CancellationToken ct = default)
     {

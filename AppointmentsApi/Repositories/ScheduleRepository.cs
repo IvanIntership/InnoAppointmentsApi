@@ -41,4 +41,14 @@ public sealed class ScheduleRepository : IScheduleRepository
         var filter = Builders<Schedule>.Filter.Eq(x => x.Id, id);
         await _collection.DeleteOneAsync(filter);
     }
+    
+    public async Task<bool> ExistsAsync(Guid doctorId, int year, int month)
+    {
+        var filter = Builders<Schedule>.Filter.And(
+            Builders<Schedule>.Filter.Eq(x => x.DoctorId, doctorId),
+            Builders<Schedule>.Filter.Eq(x => x.Year, year),
+            Builders<Schedule>.Filter.Eq(x => x.Month, month)
+        );
+        return await _collection.Find(filter).AnyAsync();
+    }
 }

@@ -1,8 +1,7 @@
 ﻿using AutoMapper;
-using FluentValidation;
-using FluentValidation.Results;
 using InnoAppointmentsApi.Dtos;
 using InnoAppointmentsApi.Entities;
+using InnoAppointmentsApi.Exceptions;
 using InnoAppointmentsApi.Interfaces;
 using MediatR;
 
@@ -28,7 +27,17 @@ public sealed class CreateResultCommandHandler : IRequestHandler<CreateResultCom
     {
         var appointment = await _appointmentRepository.GetByIdAsync(request.AppointmentId);
         if (appointment == null)
-            throw new ValidationException(new[] { new ValidationFailure(nameof(request.AppointmentId), "Appointment not found") });
+            throw new NotFoundException("Appointment", request.AppointmentId);
+
+        if (!appointment.IsApproved)
+            throw new BusinessRuleException("Cannot create a result for an unapproved appointment.");
+        
+        if (appointment.Date > DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new BusinessRuleException("Cannot create a result for a future appointment.");
+        
+        var existingResult = await _resultRepository.GetByAppointmentIdAsync(request.AppointmentId);
+        if (existingResult != null)
+            throw new ConflictException("Result for this appointment already exists.");
 
         var result = _mapper.Map<Result>(request);
         result.Id = Guid.NewGuid();
@@ -52,7 +61,12 @@ public sealed class UpdateResultCommandHandler : IRequestHandler<UpdateResultCom
 
     public async Task Handle(UpdateResultCommand request, CancellationToken cancellationToken)
     {
+        var existingResult = await _repository.GetByIdAsync(request.Id);
+        if (existingResult == null)
+            throw new NotFoundException("Result", request.Id);
+
         var result = _mapper.Map<Result>(request);
+
         await _repository.UpdateAsync(result);
     }
 }

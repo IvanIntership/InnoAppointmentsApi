@@ -1,8 +1,7 @@
 ﻿using AutoMapper;
-using FluentValidation;
-using FluentValidation.Results;
 using InnoAppointmentsApi.Dtos;
 using InnoAppointmentsApi.Entities;
+using InnoAppointmentsApi.Exceptions;
 using InnoAppointmentsApi.Interfaces;
 using MediatR;
 
@@ -27,7 +26,10 @@ public sealed class CreateScheduleCommandHandler : IRequestHandler<CreateSchedul
     public async Task<Guid> Handle(CreateScheduleCommand request, CancellationToken cancellationToken)
     {
         if (!await _externalValidation.DoctorExistsAsync(request.DoctorId, cancellationToken))
-            throw new ValidationException(new[] { new ValidationFailure(nameof(request.DoctorId), "Doctor not found") });
+            throw new NotFoundException("Doctor", request.DoctorId);
+        
+        if (await _repository.ExistsAsync(request.DoctorId, request.Year, request.Month))
+            throw new ConflictException("A schedule for this doctor in this month already exists.");
 
         var schedule = _mapper.Map<Schedule>(request);
         schedule.Id = Guid.NewGuid();
@@ -41,23 +43,54 @@ public sealed class CreateScheduleCommandHandler : IRequestHandler<CreateSchedul
 public sealed class UpdateScheduleCommandHandler : IRequestHandler<UpdateScheduleCommand>
 {
     private readonly IScheduleRepository _repository;
+    private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMapper _mapper;
     private readonly IExternalValidationService _externalValidation;
 
     public UpdateScheduleCommandHandler(
         IScheduleRepository repository, 
+        IAppointmentRepository appointmentRepository,
         IMapper mapper, 
         IExternalValidationService externalValidation)
     {
         _repository = repository;
+        _appointmentRepository = appointmentRepository;
         _mapper = mapper;
         _externalValidation = externalValidation;
     }
 
     public async Task Handle(UpdateScheduleCommand request, CancellationToken cancellationToken)
     {
+        var existingSchedule = await _repository.GetByIdAsync(request.Id);
+        if (existingSchedule == null)
+            throw new NotFoundException("Schedule", request.Id);
+
         if (!await _externalValidation.DoctorExistsAsync(request.DoctorId, cancellationToken))
-            throw new ValidationException(new[] { new ValidationFailure(nameof(request.DoctorId), "Doctor not found") });
+            throw new NotFoundException("Doctor", request.DoctorId);
+        
+        if (existingSchedule.Year != request.Year || existingSchedule.Month != request.Month)
+        {
+            if (await _repository.ExistsAsync(request.DoctorId, request.Year, request.Month))
+                throw new ConflictException("A schedule for this new month already exists.");
+        }
+
+        var monthAppointments = (await _appointmentRepository.GetByDoctorIdAsync(request.DoctorId))
+            .Where(a => a.Date.Year == request.Year && a.Date.Month == request.Month)
+            .ToList();
+        
+        foreach (var appointment in monthAppointments)
+        {
+            var newWorkDay = request.WorkDays.FirstOrDefault(w => w.Date == appointment.Date);
+            
+            if (newWorkDay == null)
+                throw new BusinessRuleException($"Cannot remove work day {appointment.Date} because there are existing appointments.");
+
+            var serviceDuration = await _externalValidation.GetServiceDurationAsync(appointment.ServiceId, cancellationToken);
+            var appointmentEndTime = appointment.Time.Add(serviceDuration);
+
+            if (appointment.Time < newWorkDay.StartTime || appointmentEndTime > newWorkDay.EndTime)
+                throw new BusinessRuleException($"Appointment on {appointment.Date} at {appointment.Time} falls outside the new working hours.");
+        }
 
         var schedule = _mapper.Map<Schedule>(request);
         await _repository.UpdateAsync(schedule);

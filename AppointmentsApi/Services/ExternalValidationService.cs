@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using InnoAppointmentsApi.Dtos.External;
 using InnoAppointmentsApi.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 
@@ -48,5 +49,31 @@ public sealed class ExternalValidationService : IExternalValidationService
 
         var response = await client.SendAsync(request, cancellationToken);
         return response.IsSuccessStatusCode;
+    }
+    
+    public async Task<TimeSpan> GetServiceDurationAsync(Guid serviceId, CancellationToken cancellationToken)
+    {
+        var context = _httpContextAccessor.HttpContext;
+        var token = context != null ? await context.GetTokenAsync("access_token") : null;
+        
+        var serviceRequest = new HttpRequestMessage(HttpMethod.Get, $"/services/{serviceId}");
+        if (!string.IsNullOrEmpty(token)) serviceRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        
+        var serviceResponse = await _gatewayClient.SendAsync(serviceRequest, cancellationToken);
+        if (!serviceResponse.IsSuccessStatusCode)
+            throw new Exception($"Failed to fetch service {serviceId}");
+            
+        var service = await serviceResponse.Content.ReadFromJsonAsync<ServiceDto>(cancellationToken: cancellationToken);
+        
+        var categoryRequest = new HttpRequestMessage(HttpMethod.Get, $"/serviceCategories/{service!.CategoryId}");
+        if (!string.IsNullOrEmpty(token)) categoryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        
+        var categoryResponse = await _gatewayClient.SendAsync(categoryRequest, cancellationToken);
+        if (!categoryResponse.IsSuccessStatusCode)
+            throw new Exception($"Failed to fetch category {service.CategoryId}");
+
+        var category = await categoryResponse.Content.ReadFromJsonAsync<ServiceCategoryDto>(cancellationToken: cancellationToken);
+        
+        return category!.Duration;
     }
 }

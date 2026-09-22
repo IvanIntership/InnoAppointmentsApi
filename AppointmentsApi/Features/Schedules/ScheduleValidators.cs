@@ -20,6 +20,10 @@ public sealed class CreateScheduleCommandValidator : AbstractValidator<CreateSch
         RuleFor(x => x.Year).InclusiveBetween(2024, 2100);
         RuleFor(x => x.Month).InclusiveBetween(1, 12);
         RuleForEach(x => x.WorkDays).SetValidator(new WorkDayDtoValidator());
+        
+        RuleFor(x => x.WorkDays)
+                    .Must(x => x.Select(w => w.Date).Distinct().Count() == x.Count)
+                    .WithMessage("Work days must contain unique dates.");
     }
 }
 
@@ -32,6 +36,10 @@ public sealed class UpdateScheduleCommandValidator : AbstractValidator<UpdateSch
         RuleFor(x => x.Year).InclusiveBetween(2024, 2100);
         RuleFor(x => x.Month).InclusiveBetween(1, 12);
         RuleForEach(x => x.WorkDays).SetValidator(new WorkDayDtoValidator());
+        
+        RuleFor(x => x.WorkDays)
+                    .Must(x => x.Select(w => w.Date).Distinct().Count() == x.Count)
+                    .WithMessage("Work days must contain unique dates.");
     }
 }
 

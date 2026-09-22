@@ -101,8 +101,12 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddHttpClient("GatewayClient", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5000");
-    client.DefaultRequestHeaders.Add("ClientId", "AppointmentsMicroservice");
+    var gatewayBaseUrl = builder.Configuration["Gateway:BaseUrl"] ?? throw new InvalidOperationException("Gateway:BaseUrl configuration is missing.");
+                         
+    var clientId = builder.Configuration["Gateway:ClientId"] ?? "AppointmentsMicroservice";
+
+    client.BaseAddress = new Uri(gatewayBaseUrl);
+    client.DefaultRequestHeaders.Add("ClientId", clientId);
 });
 
 builder.Services.AddScoped<IExternalValidationService, ExternalValidationService>();

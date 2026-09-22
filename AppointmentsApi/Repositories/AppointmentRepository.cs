@@ -16,7 +16,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task<Appointment?> GetByIdAsync(Guid id)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"SELECT * FROM ""Appointments"" WHERE ""Id"" = @Id";
+        const string sql = @"SELECT * FROM Appointments WHERE Id = @Id";
         
         return await connection.QuerySingleOrDefaultAsync<Appointment>(sql, new { Id = id });
     }
@@ -24,7 +24,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task<IEnumerable<Appointment>> GetByDoctorIdAsync(Guid doctorId)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"SELECT * FROM ""Appointments"" WHERE ""DoctorId"" = @DoctorId";
+        const string sql = @"SELECT * FROM Appointments WHERE DoctorId = @DoctorId";
         
         return await connection.QueryAsync<Appointment>(sql, new { DoctorId = doctorId });
     }
@@ -32,7 +32,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task<IEnumerable<Appointment>> GetByPatientIdAsync(Guid patientId)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"SELECT * FROM ""Appointments"" WHERE ""PatientId"" = @PatientId";
+        const string sql = @"SELECT * FROM Appointments WHERE PatientId = @PatientId";
         
         return await connection.QueryAsync<Appointment>(sql, new { PatientId = patientId });
     }
@@ -41,7 +41,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
         const string sql = @"
-            INSERT INTO ""Appointments"" (""Id"", ""PatientId"", ""DoctorId"", ""ServiceId"", ""Date"", ""Time"", ""IsApproved"")
+            INSERT INTO Appointments (Id, PatientId, DoctorId, ServiceId, Date, Time, IsApproved)
             VALUES (@Id, @PatientId, @DoctorId, @ServiceId, @Date, @Time, @IsApproved)";
             
         await connection.ExecuteAsync(sql, appointment);
@@ -51,14 +51,14 @@ public sealed class AppointmentRepository : IAppointmentRepository
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
         const string sql = @"
-            UPDATE ""Appointments"" 
-            SET ""PatientId"" = @PatientId, 
-                ""DoctorId"" = @DoctorId, 
-                ""ServiceId"" = @ServiceId, 
-                ""Date"" = @Date, 
-                ""Time"" = @Time, 
-                ""IsApproved"" = @IsApproved
-            WHERE ""Id"" = @Id";
+            UPDATE Appointments 
+            SET PatientId = @PatientId, 
+                DoctorId = @DoctorId, 
+                ServiceId = @ServiceId, 
+                Date = @Date, 
+                Time = @Time, 
+                IsApproved = @IsApproved
+            WHERE Id = @Id";
             
         await connection.ExecuteAsync(sql, appointment);
     }
@@ -66,7 +66,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
     public async Task DeleteAsync(Guid id)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"DELETE FROM ""Appointments"" WHERE ""Id"" = @Id";
+        const string sql = @"DELETE FROM Appointments WHERE Id = @Id";
         
         await connection.ExecuteAsync(sql, new { Id = id });
     }

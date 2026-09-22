@@ -7,18 +7,24 @@ using MediatR;
 
 namespace InnoAppointmentsApi.Features.Schedules;
 
-public sealed class CreateScheduleCommandHandler : IRequestHandler<CreateScheduleCommand, Guid>
+public sealed class ScheduleCommandHandlers : 
+    IRequestHandler<CreateScheduleCommand, Guid>,
+    IRequestHandler<UpdateScheduleCommand>,
+    IRequestHandler<DeleteScheduleCommand>
 {
     private readonly IScheduleRepository _repository;
+    private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMapper _mapper;
     private readonly IExternalValidationService _externalValidation;
 
-    public CreateScheduleCommandHandler(
+    public ScheduleCommandHandlers(
         IScheduleRepository repository, 
+        IAppointmentRepository appointmentRepository,
         IMapper mapper, 
         IExternalValidationService externalValidation)
     {
         _repository = repository;
+        _appointmentRepository = appointmentRepository;
         _mapper = mapper;
         _externalValidation = externalValidation;
     }
@@ -37,26 +43,6 @@ public sealed class CreateScheduleCommandHandler : IRequestHandler<CreateSchedul
         await _repository.AddAsync(schedule);
         
         return schedule.Id;
-    }
-}
-
-public sealed class UpdateScheduleCommandHandler : IRequestHandler<UpdateScheduleCommand>
-{
-    private readonly IScheduleRepository _repository;
-    private readonly IAppointmentRepository _appointmentRepository;
-    private readonly IMapper _mapper;
-    private readonly IExternalValidationService _externalValidation;
-
-    public UpdateScheduleCommandHandler(
-        IScheduleRepository repository, 
-        IAppointmentRepository appointmentRepository,
-        IMapper mapper, 
-        IExternalValidationService externalValidation)
-    {
-        _repository = repository;
-        _appointmentRepository = appointmentRepository;
-        _mapper = mapper;
-        _externalValidation = externalValidation;
     }
 
     public async Task Handle(UpdateScheduleCommand request, CancellationToken cancellationToken)
@@ -95,13 +81,6 @@ public sealed class UpdateScheduleCommandHandler : IRequestHandler<UpdateSchedul
         var schedule = _mapper.Map<Schedule>(request);
         await _repository.UpdateAsync(schedule);
     }
-}
-
-public sealed class DeleteScheduleCommandHandler : IRequestHandler<DeleteScheduleCommand>
-{
-    private readonly IScheduleRepository _repository;
-
-    public DeleteScheduleCommandHandler(IScheduleRepository repository) => _repository = repository;
 
     public async Task Handle(DeleteScheduleCommand request, CancellationToken cancellationToken)
     {
@@ -109,12 +88,14 @@ public sealed class DeleteScheduleCommandHandler : IRequestHandler<DeleteSchedul
     }
 }
 
-public sealed class GetScheduleByIdQueryHandler : IRequestHandler<GetScheduleByIdQuery, ScheduleDto?>
+public sealed class ScheduleQueryHandlers : 
+    IRequestHandler<GetScheduleByIdQuery, ScheduleDto?>,
+    IRequestHandler<GetSchedulesByDoctorIdQuery, IEnumerable<ScheduleDto>>
 {
     private readonly IScheduleRepository _repository;
     private readonly IMapper _mapper;
 
-    public GetScheduleByIdQueryHandler(IScheduleRepository repository, IMapper mapper)
+    public ScheduleQueryHandlers(IScheduleRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;
@@ -124,18 +105,6 @@ public sealed class GetScheduleByIdQueryHandler : IRequestHandler<GetScheduleByI
     {
         var schedule = await _repository.GetByIdAsync(request.Id);
         return _mapper.Map<ScheduleDto?>(schedule);
-    }
-}
-
-public sealed class GetSchedulesByDoctorIdQueryHandler : IRequestHandler<GetSchedulesByDoctorIdQuery, IEnumerable<ScheduleDto>>
-{
-    private readonly IScheduleRepository _repository;
-    private readonly IMapper _mapper;
-
-    public GetSchedulesByDoctorIdQueryHandler(IScheduleRepository repository, IMapper mapper)
-    {
-        _repository = repository;
-        _mapper = mapper;
     }
 
     public async Task<IEnumerable<ScheduleDto>> Handle(GetSchedulesByDoctorIdQuery request, CancellationToken cancellationToken)

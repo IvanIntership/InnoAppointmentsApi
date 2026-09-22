@@ -7,13 +7,16 @@ using MediatR;
 
 namespace InnoAppointmentsApi.Features.Results;
 
-public sealed class CreateResultCommandHandler : IRequestHandler<CreateResultCommand, Guid>
+public sealed class ResultCommandHandlers : 
+    IRequestHandler<CreateResultCommand, Guid>,
+    IRequestHandler<UpdateResultCommand>,
+    IRequestHandler<DeleteResultCommand>
 {
     private readonly IResultRepository _resultRepository;
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMapper _mapper;
 
-    public CreateResultCommandHandler(
+    public ResultCommandHandlers(
         IResultRepository resultRepository, 
         IAppointmentRepository appointmentRepository,
         IMapper mapper)
@@ -46,49 +49,32 @@ public sealed class CreateResultCommandHandler : IRequestHandler<CreateResultCom
         
         return result.Id;
     }
-}
-
-public sealed class UpdateResultCommandHandler : IRequestHandler<UpdateResultCommand>
-{
-    private readonly IResultRepository _repository;
-    private readonly IMapper _mapper;
-
-    public UpdateResultCommandHandler(IResultRepository repository, IMapper mapper)
-    {
-        _repository = repository;
-        _mapper = mapper;
-    }
 
     public async Task Handle(UpdateResultCommand request, CancellationToken cancellationToken)
     {
-        var existingResult = await _repository.GetByIdAsync(request.Id);
+        var existingResult = await _resultRepository.GetByIdAsync(request.Id);
         if (existingResult == null)
             throw new NotFoundException("Result", request.Id);
 
         var result = _mapper.Map<Result>(request);
 
-        await _repository.UpdateAsync(result);
+        await _resultRepository.UpdateAsync(result);
     }
-}
-
-public sealed class DeleteResultCommandHandler : IRequestHandler<DeleteResultCommand>
-{
-    private readonly IResultRepository _repository;
-
-    public DeleteResultCommandHandler(IResultRepository repository) => _repository = repository;
 
     public async Task Handle(DeleteResultCommand request, CancellationToken cancellationToken)
     {
-        await _repository.DeleteAsync(request.Id);
+        await _resultRepository.DeleteAsync(request.Id);
     }
 }
 
-public sealed class GetResultByIdQueryHandler : IRequestHandler<GetResultByIdQuery, ResultDto?>
+public sealed class ResultQueryHandlers : 
+    IRequestHandler<GetResultByIdQuery, ResultDto?>,
+    IRequestHandler<GetResultByAppointmentIdQuery, ResultDto?>
 {
     private readonly IResultRepository _repository;
     private readonly IMapper _mapper;
 
-    public GetResultByIdQueryHandler(IResultRepository repository, IMapper mapper)
+    public ResultQueryHandlers(IResultRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;
@@ -98,18 +84,6 @@ public sealed class GetResultByIdQueryHandler : IRequestHandler<GetResultByIdQue
     {
         var result = await _repository.GetByIdAsync(request.Id);
         return _mapper.Map<ResultDto?>(result);
-    }
-}
-
-public sealed class GetResultByAppointmentIdQueryHandler : IRequestHandler<GetResultByAppointmentIdQuery, ResultDto?>
-{
-    private readonly IResultRepository _repository;
-    private readonly IMapper _mapper;
-
-    public GetResultByAppointmentIdQueryHandler(IResultRepository repository, IMapper mapper)
-    {
-        _repository = repository;
-        _mapper = mapper;
     }
 
     public async Task<ResultDto?> Handle(GetResultByAppointmentIdQuery request, CancellationToken cancellationToken)

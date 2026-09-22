@@ -16,7 +16,7 @@ public sealed class ResultRepository : IResultRepository
     public async Task<Result?> GetByIdAsync(Guid id)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"SELECT * FROM ""Results"" WHERE ""Id"" = @Id";
+        const string sql = @"SELECT * FROM Results WHERE Id = @Id";
         
         return await connection.QuerySingleOrDefaultAsync<Result>(sql, new { Id = id });
     }
@@ -24,7 +24,7 @@ public sealed class ResultRepository : IResultRepository
     public async Task<Result?> GetByAppointmentIdAsync(Guid appointmentId)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"SELECT * FROM ""Results"" WHERE ""AppointmentId"" = @AppointmentId";
+        const string sql = @"SELECT * FROM Results WHERE AppointmentId = @AppointmentId";
         
         return await connection.QuerySingleOrDefaultAsync<Result>(sql, new { AppointmentId = appointmentId });
     }
@@ -33,7 +33,7 @@ public sealed class ResultRepository : IResultRepository
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
         const string sql = @"
-            INSERT INTO ""Results"" (""Id"", ""AppointmentId"", ""Complaints"", ""Diagnosis"", ""Recommendations"")
+            INSERT INTO Results (Id, AppointmentId, Complaints, Diagnosis, Recommendations)
             VALUES (@Id, @AppointmentId, @Complaints, @Diagnosis, @Recommendations)";
             
         await connection.ExecuteAsync(sql, result);
@@ -43,11 +43,11 @@ public sealed class ResultRepository : IResultRepository
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
         const string sql = @"
-            UPDATE ""Results"" 
-            SET ""Complaints"" = @Complaints, 
-                ""Diagnosis"" = @Diagnosis, 
-                ""Recommendations"" = @Recommendations
-            WHERE ""Id"" = @Id";
+            UPDATE Results 
+            SET Complaints = @Complaints, 
+                Diagnosis = @Diagnosis, 
+                Recommendations = @Recommendations
+            WHERE Id = @Id";
             
         await connection.ExecuteAsync(sql, result);
     }
@@ -55,7 +55,7 @@ public sealed class ResultRepository : IResultRepository
     public async Task DeleteAsync(Guid id)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();
-        const string sql = @"DELETE FROM ""Results"" WHERE ""Id"" = @Id";
+        const string sql = @"DELETE FROM Results WHERE Id = @Id";
         
         await connection.ExecuteAsync(sql, new { Id = id });
     }

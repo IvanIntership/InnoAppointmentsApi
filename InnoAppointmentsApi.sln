@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InnoAppointmentsApi", "InnoAppointmentsApi\InnoAppointmentsApi.csproj", "{9615222D-69F8-4FC4-959A-0E61F9251C9C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppointmentsApi", "AppointmentsApi\AppointmentsApi.csproj", "{9615222D-69F8-4FC4-959A-0E61F9251C9C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

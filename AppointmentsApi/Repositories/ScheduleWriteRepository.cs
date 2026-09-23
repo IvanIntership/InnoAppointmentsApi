@@ -1,14 +1,15 @@
 ﻿using InnoAppointmentsApi.Entities;
 using InnoAppointmentsApi.Interfaces;
 using MongoDB.Driver;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InnoAppointmentsApi.Repositories;
 
-public sealed class ScheduleRepository : IScheduleRepository
+public sealed class ScheduleWriteRepository : IScheduleWriteRepository
 {
     private readonly IMongoCollection<Schedule> _collection;
-
-    public ScheduleRepository(IMongoDatabase database)
+    
+    public ScheduleWriteRepository([FromKeyedServices("MongoWrite")] IMongoDatabase database)
     {
         _collection = database.GetCollection<Schedule>("schedules");
     }
@@ -19,10 +20,14 @@ public sealed class ScheduleRepository : IScheduleRepository
         return await _collection.Find(filter).FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<Schedule>> GetByDoctorIdAsync(Guid doctorId)
+    public async Task<bool> ExistsAsync(Guid doctorId, int year, int month)
     {
-        var filter = Builders<Schedule>.Filter.Eq(x => x.DoctorId, doctorId);
-        return await _collection.Find(filter).ToListAsync();
+        var filter = Builders<Schedule>.Filter.And(
+            Builders<Schedule>.Filter.Eq(x => x.DoctorId, doctorId),
+            Builders<Schedule>.Filter.Eq(x => x.Year, year),
+            Builders<Schedule>.Filter.Eq(x => x.Month, month)
+        );
+        return await _collection.Find(filter).AnyAsync();
     }
 
     public async Task AddAsync(Schedule schedule)
@@ -42,13 +47,9 @@ public sealed class ScheduleRepository : IScheduleRepository
         await _collection.DeleteOneAsync(filter);
     }
     
-    public async Task<bool> ExistsAsync(Guid doctorId, int year, int month)
+    public async Task<IEnumerable<Schedule>> GetByDoctorIdAsync(Guid doctorId)
     {
-        var filter = Builders<Schedule>.Filter.And(
-            Builders<Schedule>.Filter.Eq(x => x.DoctorId, doctorId),
-            Builders<Schedule>.Filter.Eq(x => x.Year, year),
-            Builders<Schedule>.Filter.Eq(x => x.Month, month)
-        );
-        return await _collection.Find(filter).AnyAsync();
+        var filter = Builders<Schedule>.Filter.Eq(x => x.DoctorId, doctorId);
+        return await _collection.Find(filter).ToListAsync();
     }
 }

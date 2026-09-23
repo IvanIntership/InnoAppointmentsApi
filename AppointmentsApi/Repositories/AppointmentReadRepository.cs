@@ -4,11 +4,11 @@ using InnoAppointmentsApi.Interfaces;
 
 namespace InnoAppointmentsApi.Repositories;
 
-public sealed class AppointmentRepository : IAppointmentRepository
+public sealed class AppointmentReadRepository : IAppointmentReadRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IReadDbConnectionFactory _connectionFactory;
 
-    public AppointmentRepository(IDbConnectionFactory connectionFactory)
+    public AppointmentReadRepository(IReadDbConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory;
     }
@@ -36,7 +36,7 @@ public sealed class AppointmentRepository : IAppointmentRepository
         
         return await connection.QueryAsync<Appointment>(sql, new { PatientId = patientId });
     }
-
+    
     public async Task AddAsync(Appointment appointment)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();

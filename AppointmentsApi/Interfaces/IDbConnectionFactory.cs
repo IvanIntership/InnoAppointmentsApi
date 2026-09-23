@@ -2,7 +2,12 @@
 
 namespace InnoAppointmentsApi.Interfaces;
 
-public interface IDbConnectionFactory
+public interface IWriteDbConnectionFactory
+{
+    Task<IDbConnection> CreateConnectionAsync(CancellationToken cancellationToken = default);
+}
+
+public interface IReadDbConnectionFactory
 {
     Task<IDbConnection> CreateConnectionAsync(CancellationToken cancellationToken = default);
 }

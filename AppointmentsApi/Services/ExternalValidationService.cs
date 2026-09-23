@@ -76,4 +76,25 @@ public sealed class ExternalValidationService : IExternalValidationService
         
         return category!.Duration;
     }
+    
+    public async Task<bool> DoctorProvidesServiceAsync(Guid doctorId, Guid serviceId, CancellationToken cancellationToken = default)
+    {
+        var doctorResponse = await _gatewayClient.GetAsync($"/doctors/{doctorId}", cancellationToken);
+        if (!doctorResponse.IsSuccessStatusCode)
+            return false;
+
+        var doctor = await doctorResponse.Content.ReadFromJsonAsync<DoctorDto>(cancellationToken: cancellationToken);
+        if (doctor == null)
+            return false;
+
+        var serviceResponse = await _gatewayClient.GetAsync($"/services/{serviceId}", cancellationToken);
+        if (!serviceResponse.IsSuccessStatusCode)
+            return false;
+
+        var service = await serviceResponse.Content.ReadFromJsonAsync<ServiceDto>(cancellationToken: cancellationToken);
+        if (service == null)
+            return false;
+        
+        return doctor.SpecializationId == service.SpecializationId;
+    }
 }

@@ -12,21 +12,24 @@ public sealed class AppointmentCommandHandlers :
     IRequestHandler<UpdateAppointmentCommand>,
     IRequestHandler<DeleteAppointmentCommand>
 {
-    private readonly IAppointmentRepository _appointmentRepository;
-    private readonly IScheduleRepository _scheduleRepository;
+    private readonly IAppointmentWriteRepository _appointmentRepository;
+    private readonly IScheduleWriteRepository _scheduleRepository;
     private readonly IMapper _mapper;
     private readonly IExternalValidationService _externalValidation;
+    private readonly IPublisher _publisher;
 
     public AppointmentCommandHandlers(
-        IAppointmentRepository appointmentRepository,
-        IScheduleRepository scheduleRepository,
+        IAppointmentWriteRepository appointmentRepository,
+        IScheduleWriteRepository scheduleRepository,
         IMapper mapper, 
-        IExternalValidationService externalValidation)
+        IExternalValidationService externalValidation,
+        IPublisher publisher)
     {
         _appointmentRepository = appointmentRepository;
         _scheduleRepository = scheduleRepository;
         _mapper = mapper;
         _externalValidation = externalValidation;
+        _publisher = publisher;
     }
 
     public async Task<Guid> Handle(CreateAppointmentCommand request, CancellationToken cancellationToken)
@@ -40,9 +43,12 @@ public sealed class AppointmentCommandHandlers :
         if (!await _externalValidation.ServiceExistsAsync(request.ServiceId, cancellationToken))
             throw new NotFoundException("Service", request.ServiceId);
         
+        if (!await _externalValidation.DoctorProvidesServiceAsync(request.DoctorId, request.ServiceId, cancellationToken))
+            throw new BusinessRuleException("The selected doctor does not specialize in the requested service.");
+        
         var serviceDuration = await _externalValidation.GetServiceDurationAsync(request.ServiceId, cancellationToken);
         var appointmentEndTime = request.Time.Add(serviceDuration);
-
+        
         var doctorSchedules = await _scheduleRepository.GetByDoctorIdAsync(request.DoctorId);
         var currentMonthSchedule = doctorSchedules.FirstOrDefault(s => s.Year == request.Date.Year && s.Month == request.Date.Month);
         
@@ -75,6 +81,7 @@ public sealed class AppointmentCommandHandlers :
         appointment.Id = Guid.NewGuid();
         
         await _appointmentRepository.AddAsync(appointment);
+        await _publisher.Publish(new AppointmentCreatedEvent(appointment), cancellationToken);
         
         return appointment.Id;
     }
@@ -84,7 +91,7 @@ public sealed class AppointmentCommandHandlers :
         var existingAppointment = await _appointmentRepository.GetByIdAsync(request.Id);
         if (existingAppointment == null)
             throw new NotFoundException("Appointment", request.Id);
-                
+
         if (!await _externalValidation.PatientExistsAsync(request.PatientId, cancellationToken))
             throw new NotFoundException("Patient", request.PatientId);
 
@@ -93,22 +100,20 @@ public sealed class AppointmentCommandHandlers :
 
         if (!await _externalValidation.ServiceExistsAsync(request.ServiceId, cancellationToken))
             throw new NotFoundException("Service", request.ServiceId);
-        
+
+        if (!await _externalValidation.DoctorProvidesServiceAsync(request.DoctorId, request.ServiceId, cancellationToken))
+            throw new BusinessRuleException("The selected doctor does not specialize in the requested service.");
+
         var serviceDuration = await _externalValidation.GetServiceDurationAsync(request.ServiceId, cancellationToken);
         var appointmentEndTime = request.Time.Add(serviceDuration);
         
         var doctorSchedules = await _scheduleRepository.GetByDoctorIdAsync(request.DoctorId);
         var currentMonthSchedule = doctorSchedules.FirstOrDefault(s => s.Year == request.Date.Year && s.Month == request.Date.Month);
 
-        if (currentMonthSchedule == null)
-            throw new BusinessRuleException("Doctor does not have a schedule for this month.");
-
+        if (currentMonthSchedule == null) throw new BusinessRuleException("Doctor does not have a schedule for this month.");
         var workDay = currentMonthSchedule.WorkDays.FirstOrDefault(w => w.Date == request.Date);
-        if (workDay == null)
-            throw new BusinessRuleException("Doctor does not work on this date.");
-
-        if (request.Time < workDay.StartTime || appointmentEndTime > workDay.EndTime)
-            throw new BusinessRuleException("The appointment falls outside of the doctor's working hours.");
+        if (workDay == null) throw new BusinessRuleException("Doctor does not work on this date.");
+        if (request.Time < workDay.StartTime || appointmentEndTime > workDay.EndTime) throw new BusinessRuleException("The appointment falls outside of the doctor's working hours.");
 
         var existingAppointments = (await _appointmentRepository.GetByDoctorIdAsync(request.DoctorId))
             .Where(a => a.Date == request.Date && a.Id != request.Id)
@@ -127,11 +132,15 @@ public sealed class AppointmentCommandHandlers :
 
         var appointment = _mapper.Map<Appointment>(request);
         await _appointmentRepository.UpdateAsync(appointment);
+
+        await _publisher.Publish(new AppointmentUpdatedEvent(appointment), cancellationToken);
     }
 
     public async Task Handle(DeleteAppointmentCommand request, CancellationToken cancellationToken)
     {
         await _appointmentRepository.DeleteAsync(request.Id);
+
+        await _publisher.Publish(new AppointmentDeletedEvent(request.Id), cancellationToken);
     }
 }
 
@@ -140,10 +149,10 @@ public sealed class AppointmentQueryHandlers :
     IRequestHandler<GetAppointmentsByDoctorIdQuery, IEnumerable<AppointmentDto>>,
     IRequestHandler<GetAppointmentsByPatientIdQuery, IEnumerable<AppointmentDto>>
 {
-    private readonly IAppointmentRepository _repository;
+    private readonly IAppointmentReadRepository _repository;
     private readonly IMapper _mapper;
 
-    public AppointmentQueryHandlers(IAppointmentRepository repository, IMapper mapper)
+    public AppointmentQueryHandlers(IAppointmentReadRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;

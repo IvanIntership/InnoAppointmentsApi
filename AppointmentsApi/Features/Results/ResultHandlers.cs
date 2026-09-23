@@ -12,18 +12,21 @@ public sealed class ResultCommandHandlers :
     IRequestHandler<UpdateResultCommand>,
     IRequestHandler<DeleteResultCommand>
 {
-    private readonly IResultRepository _resultRepository;
-    private readonly IAppointmentRepository _appointmentRepository;
+    private readonly IResultWriteRepository _resultRepository;
+    private readonly IAppointmentWriteRepository _appointmentRepository;
     private readonly IMapper _mapper;
+    private readonly IPublisher _publisher;
 
     public ResultCommandHandlers(
-        IResultRepository resultRepository, 
-        IAppointmentRepository appointmentRepository,
-        IMapper mapper)
+        IResultWriteRepository resultRepository, 
+        IAppointmentWriteRepository appointmentRepository,
+        IMapper mapper,
+        IPublisher publisher)
     {
         _resultRepository = resultRepository;
         _appointmentRepository = appointmentRepository;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<Guid> Handle(CreateResultCommand request, CancellationToken cancellationToken)
@@ -46,6 +49,8 @@ public sealed class ResultCommandHandlers :
         result.Id = Guid.NewGuid();
         
         await _resultRepository.AddAsync(result);
+
+        await _publisher.Publish(new ResultCreatedEvent(result), cancellationToken);
         
         return result.Id;
     }
@@ -59,11 +64,15 @@ public sealed class ResultCommandHandlers :
         var result = _mapper.Map<Result>(request);
 
         await _resultRepository.UpdateAsync(result);
+        
+        await _publisher.Publish(new ResultUpdatedEvent(result), cancellationToken);
     }
 
     public async Task Handle(DeleteResultCommand request, CancellationToken cancellationToken)
     {
         await _resultRepository.DeleteAsync(request.Id);
+        
+        await _publisher.Publish(new ResultDeletedEvent(request.Id), cancellationToken);
     }
 }
 
@@ -71,10 +80,10 @@ public sealed class ResultQueryHandlers :
     IRequestHandler<GetResultByIdQuery, ResultDto?>,
     IRequestHandler<GetResultByAppointmentIdQuery, ResultDto?>
 {
-    private readonly IResultRepository _repository;
+    private readonly IResultReadRepository _repository;
     private readonly IMapper _mapper;
 
-    public ResultQueryHandlers(IResultRepository repository, IMapper mapper)
+    public ResultQueryHandlers(IResultReadRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;

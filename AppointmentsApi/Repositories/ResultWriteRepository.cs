@@ -4,15 +4,15 @@ using InnoAppointmentsApi.Interfaces;
 
 namespace InnoAppointmentsApi.Repositories;
 
-public sealed class ResultRepository : IResultRepository
+public sealed class ResultWriteRepository : IResultWriteRepository
 {
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly IWriteDbConnectionFactory _connectionFactory;
 
-    public ResultRepository(IDbConnectionFactory connectionFactory)
+    public ResultWriteRepository(IWriteDbConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory;
     }
-
+    
     public async Task<Result?> GetByIdAsync(Guid id)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync();

@@ -12,21 +12,24 @@ public sealed class ScheduleCommandHandlers :
     IRequestHandler<UpdateScheduleCommand>,
     IRequestHandler<DeleteScheduleCommand>
 {
-    private readonly IScheduleRepository _repository;
-    private readonly IAppointmentRepository _appointmentRepository;
+    private readonly IScheduleWriteRepository _repository;
+    private readonly IAppointmentWriteRepository _appointmentRepository;
     private readonly IMapper _mapper;
     private readonly IExternalValidationService _externalValidation;
+    private readonly IPublisher _publisher;
 
     public ScheduleCommandHandlers(
-        IScheduleRepository repository, 
-        IAppointmentRepository appointmentRepository,
+        IScheduleWriteRepository repository, 
+        IAppointmentWriteRepository appointmentRepository,
         IMapper mapper, 
-        IExternalValidationService externalValidation)
+        IExternalValidationService externalValidation,
+        IPublisher publisher)
     {
         _repository = repository;
         _appointmentRepository = appointmentRepository;
         _mapper = mapper;
         _externalValidation = externalValidation;
+        _publisher = publisher;
     }
 
     public async Task<Guid> Handle(CreateScheduleCommand request, CancellationToken cancellationToken)
@@ -41,6 +44,8 @@ public sealed class ScheduleCommandHandlers :
         schedule.Id = Guid.NewGuid();
         
         await _repository.AddAsync(schedule);
+        
+        await _publisher.Publish(new ScheduleCreatedEvent(schedule), cancellationToken);
         
         return schedule.Id;
     }
@@ -80,11 +85,15 @@ public sealed class ScheduleCommandHandlers :
 
         var schedule = _mapper.Map<Schedule>(request);
         await _repository.UpdateAsync(schedule);
+
+        await _publisher.Publish(new ScheduleUpdatedEvent(schedule), cancellationToken);
     }
 
     public async Task Handle(DeleteScheduleCommand request, CancellationToken cancellationToken)
     {
         await _repository.DeleteAsync(request.Id);
+        
+        await _publisher.Publish(new ScheduleDeletedEvent(request.Id), cancellationToken);
     }
 }
 
@@ -92,10 +101,10 @@ public sealed class ScheduleQueryHandlers :
     IRequestHandler<GetScheduleByIdQuery, ScheduleDto?>,
     IRequestHandler<GetSchedulesByDoctorIdQuery, IEnumerable<ScheduleDto>>
 {
-    private readonly IScheduleRepository _repository;
+    private readonly IScheduleReadRepository _repository;
     private readonly IMapper _mapper;
 
-    public ScheduleQueryHandlers(IScheduleRepository repository, IMapper mapper)
+    public ScheduleQueryHandlers(IScheduleReadRepository repository, IMapper mapper)
     {
         _repository = repository;
         _mapper = mapper;

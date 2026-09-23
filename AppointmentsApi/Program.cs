@@ -20,35 +20,46 @@ using MongoDB.Bson.Serialization.Serializers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var postgresConnectionString = builder.Configuration.GetConnectionString("PostgresConnection") 
-                               ?? throw new InvalidOperationException("Postgres connection string not found.");
-
-var mongoConnectionString = builder.Configuration.GetConnectionString("MongoLogging") 
-                            ?? throw new InvalidOperationException("Mongo connection string not found.");
+var postgresWriteConnection = builder.Configuration.GetConnectionString("PostgresWriteConnection") 
+                               ?? throw new InvalidOperationException("PostgresWriteConnection not found.");
+var postgresReadConnection = builder.Configuration.GetConnectionString("PostgresReadConnection") 
+                               ?? throw new InvalidOperationException("PostgresReadConnection not found.");
+var mongoWriteConnection = builder.Configuration.GetConnectionString("MongoWriteConnection") 
+                            ?? throw new InvalidOperationException("MongoWriteConnection not found.");
+var mongoReadConnection = builder.Configuration.GetConnectionString("MongoReadConnection") 
+                            ?? throw new InvalidOperationException("MongoReadConnection not found.");
 
 SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
 SqlMapper.AddTypeHandler(new TimeOnlyTypeHandler());
 
-DatabaseInitializer.Initialize(postgresConnectionString);
+DatabaseInitializer.Initialize(postgresWriteConnection, postgresReadConnection);
 
-builder.Services.AddSingleton<IDbConnectionFactory>(_ => new DbConnectionFactory(postgresConnectionString));
+builder.Services.AddSingleton<IWriteDbConnectionFactory>(_ => new WriteDbConnectionFactory(postgresWriteConnection));
+builder.Services.AddSingleton<IReadDbConnectionFactory>(_ => new ReadDbConnectionFactory(postgresReadConnection));
 
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 MongoClassMap.Register();
 
-builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnectionString));
-builder.Services.AddScoped<IMongoDatabase>(sp =>
+builder.Services.AddKeyedSingleton<IMongoDatabase>("MongoWrite", (sp, key) =>
 {
-    var client = sp.GetRequiredService<IMongoClient>();
-    var mongoUrl = MongoUrl.Create(mongoConnectionString);
-    return client.GetDatabase(mongoUrl.DatabaseName);
+    var client = new MongoClient(mongoWriteConnection);
+    return client.GetDatabase(MongoUrl.Create(mongoWriteConnection).DatabaseName);
+});
+
+builder.Services.AddKeyedSingleton<IMongoDatabase>("MongoRead", (sp, key) =>
+{
+    var client = new MongoClient(mongoReadConnection);
+    return client.GetDatabase(MongoUrl.Create(mongoReadConnection).DatabaseName);
 });
 
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(Program).Assembly));
 
-builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-builder.Services.AddScoped<IResultRepository, ResultRepository>();
-builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
+builder.Services.AddScoped<IAppointmentWriteRepository, AppointmentWriteRepository>();
+builder.Services.AddScoped<IAppointmentReadRepository, AppointmentReadRepository>();
+builder.Services.AddScoped<IResultWriteRepository, ResultWriteRepository>();
+builder.Services.AddScoped<IResultReadRepository, ResultReadRepository>();
+builder.Services.AddScoped<IScheduleWriteRepository, ScheduleWriteRepository>();
+builder.Services.AddScoped<IScheduleReadRepository, ScheduleReadRepository>();
 
 builder.Services.AddOpenApi();
 

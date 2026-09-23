@@ -4,7 +4,13 @@ namespace InnoAppointmentsApi.Data;
 
 public static class DatabaseInitializer
 {
-    public static void Initialize(string connectionString)
+    public static void Initialize(string writeConnectionString, string readConnectionString)
+    {
+        ApplyMigrations(writeConnectionString, "Write Database");
+        ApplyMigrations(readConnectionString, "Read Database");
+    }
+
+    private static void ApplyMigrations(string connectionString, string dbName)
     {
         EnsureDatabase.For.PostgresqlDatabase(connectionString);
 
@@ -18,7 +24,7 @@ public static class DatabaseInitializer
 
         if (!result.Successful)
         {
-            throw new Exception("Database migration failed", result.Error);
+            throw new Exception($"Database migration failed for {dbName}", result.Error);
         }
     }
 }

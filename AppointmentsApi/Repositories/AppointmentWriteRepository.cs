@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using InnoAppointmentsApi.Constants;
 using InnoAppointmentsApi.Entities;
 using InnoAppointmentsApi.Interfaces;
 
@@ -6,9 +7,9 @@ namespace InnoAppointmentsApi.Repositories;
 
 public sealed class AppointmentWriteRepository : IAppointmentWriteRepository
 {
-    private readonly IWriteDbConnectionFactory _connectionFactory;
+    private readonly IDbConnectionFactory _connectionFactory;
 
-    public AppointmentWriteRepository(IWriteDbConnectionFactory connectionFactory)
+    public AppointmentWriteRepository([FromKeyedServices(PostgresConstants.PostgresWriteDatabaseKey)] IDbConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory;
     }

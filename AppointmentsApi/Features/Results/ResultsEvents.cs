@@ -3,6 +3,6 @@ using MediatR;
 
 namespace InnoAppointmentsApi.Features.Results;
 
-public record ResultCreatedEvent(Result Result) : INotification;
-public record ResultUpdatedEvent(Result Result) : INotification;
-public record ResultDeletedEvent(Guid Id) : INotification;
+public sealed record ResultCreatedEvent(Result Result) : INotification;
+public sealed record ResultUpdatedEvent(Result Result) : INotification;
+public sealed record ResultDeletedEvent(Guid Id) : INotification;

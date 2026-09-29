@@ -1,4 +1,5 @@
-﻿using InnoAppointmentsApi.Entities;
+﻿using InnoAppointmentsApi.Constants;
+using InnoAppointmentsApi.Entities;
 using InnoAppointmentsApi.Interfaces;
 using MongoDB.Driver;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,9 +10,9 @@ public sealed class ScheduleWriteRepository : IScheduleWriteRepository
 {
     private readonly IMongoCollection<Schedule> _collection;
     
-    public ScheduleWriteRepository([FromKeyedServices("MongoWrite")] IMongoDatabase database)
+    public ScheduleWriteRepository([FromKeyedServices(MongoConstants.MongoWriteDatabaseKey)] IMongoDatabase database)
     {
-        _collection = database.GetCollection<Schedule>("schedules");
+        _collection = database.GetCollection<Schedule>(MongoConstants.MongoSchedulesCollectionName);
     }
 
     public async Task<Schedule?> GetByIdAsync(Guid id)

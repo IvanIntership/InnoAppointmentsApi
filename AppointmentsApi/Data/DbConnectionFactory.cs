@@ -4,7 +4,7 @@ using Npgsql;
 
 namespace InnoAppointmentsApi.Data;
 
-public sealed class WriteDbConnectionFactory : IWriteDbConnectionFactory
+public sealed class WriteDbConnectionFactory : IDbConnectionFactory
 {
     private readonly string _connectionString;
     public WriteDbConnectionFactory(string connectionString) => _connectionString = connectionString;
@@ -17,7 +17,7 @@ public sealed class WriteDbConnectionFactory : IWriteDbConnectionFactory
     }
 }
 
-public sealed class ReadDbConnectionFactory : IReadDbConnectionFactory
+public sealed class ReadDbConnectionFactory : IDbConnectionFactory
 {
     private readonly string _connectionString;
     public ReadDbConnectionFactory(string connectionString) => _connectionString = connectionString;

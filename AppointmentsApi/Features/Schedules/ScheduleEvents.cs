@@ -3,6 +3,6 @@ using MediatR;
 
 namespace InnoAppointmentsApi.Features.Schedules;
 
-public record ScheduleCreatedEvent(Schedule Schedule) : INotification;
-public record ScheduleUpdatedEvent(Schedule Schedule) : INotification;
-public record ScheduleDeletedEvent(Guid Id) : INotification;
+public sealed record ScheduleCreatedEvent(Schedule Schedule) : INotification;
+public sealed record ScheduleUpdatedEvent(Schedule Schedule) : INotification;
+public sealed record ScheduleDeletedEvent(Guid Id) : INotification;

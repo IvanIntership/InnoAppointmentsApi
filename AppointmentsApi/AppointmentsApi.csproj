@@ -26,6 +26,8 @@
     <ItemGroup>
       <None Remove="Migrations\Script0001_InitialCreate.sql" />
       <EmbeddedResource Include="Migrations\Script0001_InitialCreate.sql" />
+      <None Remove="Migrations\Script0002_AddIndexes.sql" />
+      <EmbeddedResource Include="Migrations\Script0002_AddIndexes.sql" />
     </ItemGroup>
 
 </Project>

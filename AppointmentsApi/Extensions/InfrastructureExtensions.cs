@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using InnoAppointmentsApi.Constants;
 using InnoAppointmentsApi.Data;
 using InnoAppointmentsApi.Interfaces;
 using InnoAppointmentsApi.Repositories;
@@ -28,22 +29,22 @@ public static class InfrastructureExtensions
 
         DatabaseInitializer.Initialize(postgresWriteConnection, postgresReadConnection);
 
-        services.AddKeyedSingleton<IDbConnectionFactory>("PostgresWrite", (sp, key) => 
+        services.AddKeyedSingleton<IDbConnectionFactory>(PostgresConstants.PostgresWriteDatabaseKey, (sp, key) => 
             new WriteDbConnectionFactory(postgresWriteConnection));
 
-        services.AddKeyedSingleton<IDbConnectionFactory>("PostgresRead", (sp, key) => 
+        services.AddKeyedSingleton<IDbConnectionFactory>(PostgresConstants.PostgresReadDatabaseKey, (sp, key) => 
             new ReadDbConnectionFactory(postgresReadConnection));
 
         BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
         MongoClassMap.Register();
 
-        services.AddKeyedSingleton<IMongoDatabase>("MongoWrite", (sp, key) =>
+        services.AddKeyedSingleton<IMongoDatabase>(MongoConstants.MongoWriteDatabaseKey, (sp, key) =>
         {
             var client = new MongoClient(mongoWriteConnection);
             return client.GetDatabase(MongoUrl.Create(mongoWriteConnection).DatabaseName);
         });
 
-        services.AddKeyedSingleton<IMongoDatabase>("MongoRead", (sp, key) =>
+        services.AddKeyedSingleton<IMongoDatabase>(MongoConstants.MongoReadDatabaseKey, (sp, key) =>
         {
             var client = new MongoClient(mongoReadConnection);
             return client.GetDatabase(MongoUrl.Create(mongoReadConnection).DatabaseName);
